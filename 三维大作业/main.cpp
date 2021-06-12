@@ -90,6 +90,7 @@ int main(int iArgc, char** cppArgv) {
 
 void Screen() {
 	Screen_Land();
+	cout << "";
 }
 
 void Wood(){}
