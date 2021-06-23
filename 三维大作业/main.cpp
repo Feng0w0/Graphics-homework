@@ -142,7 +142,6 @@ void MouseMotion(int x, int y) {
 }
 
 int main(int iArgc, char** cppArgv) {
-
 	glutInit(&iArgc, cppArgv);//initialize glut
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH);/*use single (as opposed to double) buffer and RGB (as apposed to INDEX) color*/
 	glutInitWindowSize(960, 720); // set window size, (width, height)
