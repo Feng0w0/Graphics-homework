@@ -210,7 +210,9 @@ void Wood(){
 	glEnd();
 	glPopMatrix();
 }
-void Light(){}
+void Light(){
+	int a;
+}
 void Snow(){}
 
 void Screen_Land() {
