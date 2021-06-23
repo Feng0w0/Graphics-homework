@@ -40,17 +40,16 @@ void Initialize() {
 void Display() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); /* clear the color buffer,the buffers enabled for color writing*/
 	glColor3f(1.0, 1.0, 1.0);// use white color to draw objects
+	//场景搭建
 	Screen();
 	Wood();
 	Light();
 	Snow();
+	//摄像机控制
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	gluLookAt(sin(cameraX/180*3.1415)*100, 20, cos(cameraX / 180 * 3.1415) * 100, 0, 0, 0, 0, 1, 0);
-	//cameraX += 0.1;
-	woodDegree += 0.1;
 	glFlush();//force execution of GL commands
-	glutPostRedisplay();
 }
 
 
@@ -59,25 +58,45 @@ void NormalKeys(unsigned char normalkey, int x, int y) {
 	if (normalkey == 27) {
 		exit(0);
 	}
+	else if (normalkey == 'q') {	//摄像机顺时针转
+		cameraX -= 1;
+	}
+	else if (normalkey == 'e') {	//摄像机逆时针转
+		cameraX += 1;
+	}
+	else if (normalkey == 17) {	//ctrl+q木桩顺时针转
+		int mod = glutGetModifiers();
+		if (mod == GLUT_ACTIVE_CTRL) {
+			woodDegree -= 1;
+		}
+	}
+	else if (normalkey == 5) {	//ctrl+e木桩逆时针转
+		int mod = glutGetModifiers();
+		if (mod == GLUT_ACTIVE_CTRL) {
+			woodDegree += 1;
+		}
+	}
+	glutPostRedisplay();
 }
 void SpecialKeys(GLint specialkey, int x, int y) {
-	int mod;
+	//上下键是木桩Z轴拉伸，左右键是木桩XY轴同时拉伸
 	switch (specialkey) {
 	case GLUT_KEY_UP:
-		woodScaleY = woodScaleY+0.1;
+		woodScaleY += 0.1;
 		break;
 	case GLUT_KEY_DOWN:
 		woodScaleY -= 0.1;
 		break;
 	case GLUT_KEY_LEFT:
 		woodScaleX += 0.1;
+		woodScaleZ += 0.1;
 		break;
 	case GLUT_KEY_RIGHT:
 		woodScaleX -= 0.1;
+		woodScaleZ -= 0.1;
 		break;
 	}
-	//cout << specialkey<<" ";
-	return;
+	glutPostRedisplay();
 }
 void Reshape(int w, int h) {
 	h = (h == 0) ? 1 : h;
@@ -109,6 +128,7 @@ void Mouse(int button,int state,int x,int y) {
 		woodScaleY = 1;
 		woodScaleZ = 1;
 	}
+	glutPostRedisplay();
 }
 
 void MouseMotion(int x, int y) {
@@ -118,6 +138,7 @@ void MouseMotion(int x, int y) {
 		mouseX = x;
 		mouseY = y;
 	}
+	glutPostRedisplay();
 }
 
 int main(int iArgc, char** cppArgv) {
@@ -144,38 +165,45 @@ void Screen() {
 
 void Wood(){
 	glPushMatrix();
-	glTranslatef(woodX + disWoodX, woodY + disWoodY, woodZ + disWoodZ);
-	glRotatef(woodDegree, 0, 1, 0);
-	glScalef(woodScaleX, woodScaleY, woodScaleZ);
+	glTranslatef(woodX + disWoodX, woodY + disWoodY, woodZ + disWoodZ);	//木桩位置
+	glRotatef(woodDegree, 0, 1, 0);	//木桩旋转
+	glScalef(woodScaleX, woodScaleY, woodScaleZ);	//木桩放缩
+	//木桩绘制
 	glBegin(GL_QUADS);
 	glColor3f(0 / 256.0, 0 / 256.0, 0 / 256.0);
 	//底面
+	glNormal3f(0, -1, 0);
 	glVertex3f(-2.0, 0.0, -2.0);
 	glVertex3f(2.0, 0.0, -2.0);
 	glVertex3f(2.0, 0.0, 2.0);
 	glVertex3f(-2.0, 0.0, 2.0);
 	//顶面
+	glNormal3f(0, 1, 0);
 	glVertex3f(-2.0, 5.0, -2.0);
 	glVertex3f(2.0, 5.0, -2.0);
 	glVertex3f(2.0, 5.0, 2.0);
 	glVertex3f(-2.0, 5.0, 2.0);
 	//前
+	glNormal3f(0, 0, 1);
 	glColor3f(256.0 / 256.0, 0 / 256.0, 0 / 256.0);
 	glVertex3f(-2.0, 0.0, 2.0);
 	glVertex3f(2.0, 0.0, 2.0);
 	glVertex3f(2.0, 5.0, 2.0);
 	glVertex3f(-2.0, 5.0, 2.0);
 	//后
+	glNormal3f(0, 0, -1);
 	glVertex3f(-2.0, 0.0, -2.0);
 	glVertex3f(2.0, 0.0, -2.0);
 	glVertex3f(2.0, 5.0, -2.0);
 	glVertex3f(-2.0, 5.0, -2.0);
 	//左
+	glNormal3f(-1, 0, 0);
 	glVertex3f(-2.0, 0.0, -2.0);
 	glVertex3f(-2.0, 0.0, 2.0);
 	glVertex3f(-2.0, 5.0, 2.0);
 	glVertex3f(-2.0, 5.0, -2.0);
 	//右
+	glNormal3f(1, 0, 0);
 	glVertex3f(2.0, 0.0, -2.0);
 	glVertex3f(2.0, 0.0, 2.0);
 	glVertex3f(2.0, 5.0, 2.0);
