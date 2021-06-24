@@ -1,8 +1,4 @@
-#include<stdlib.h>
-#include<GLUT.H>
-#include <math.h>
-#include<iostream>
-using namespace std;
+#include"Mode.h"
 
 /*************************************************全局变量*************************************************/
 float landWidth = 50;	//土地宽度
@@ -11,22 +7,23 @@ float woodX = 0, woodY = 0, woodZ = 0, woodDegree = 0, woodScaleX = 1, woodScale
 float disWoodX = 0, disWoodY = 0, disWoodZ = 0;		//木桩的移动位置
 bool mouseLeftDown=false;		//鼠标左键是否按下
 int mouseX = 0, mouseY = 0;		//鼠标位置
+objModel a("Squirtle.obj");
+objModel tree("Tree.obj");
+objModel cottage("cottage.obj");
 /**********************************************************************************************************/
 
-/*************************************************函数声明*************************************************/
-void Screen();	//基础场景，包括雪人，房屋，树木，土地
-void Screen_Land();		//基础场景中的土地
-void Wood();	//进行交互操作的木桩
-void Light();		//灯光动画
-void Snow();		//下雪动画
-/**********************************************************************************************************/
-
+GLfloat lightPos[] = { 0.0f, 100.0f, 0.0f, 1.0f };
+GLfloat spotDir[] = { 0.0f, 0.0f, 1.0f };
 void Initialize() {
 	glClearColor(0.0, 0.0, 0.0, 0.0); /*Specify the red, green, blue, and alpha values used when the color buffers are cleared*/
 	glDepthFunc(GL_LEQUAL);		//遮盖采用小于等于的比较方式
 	glEnable(GL_DEPTH_TEST);	//开启遮盖
 	glShadeModel(GL_SMOOTH);	//顶点着色
 	//光照设置
+	//glEnable(GL_LIGHTING);
+	//glEnable(GL_LIGHT0);
+	//glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
+	//glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, spotDir);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	gluLookAt(0, 20, 100, 0, 0, 0, 0, 1, 0);	//将摄像机放置于(0,50,100)位置，看向(0,0,0)
@@ -40,13 +37,14 @@ void Initialize() {
 void Display() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); /* clear the color buffer,the buffers enabled for color writing*/
 	glColor3f(1.0, 1.0, 1.0);// use white color to draw objects
+	glMatrixMode(GL_MODELVIEW);
 	//场景搭建
 	Screen();
 	Wood();
 	Light();
 	Snow();
 	//摄像机控制
-	glMatrixMode(GL_MODELVIEW);
+	
 	glLoadIdentity();
 	gluLookAt(sin(cameraX/180*3.1415)*100, 20, cos(cameraX / 180 * 3.1415) * 100, 0, 0, 0, 0, 1, 0);
 	glFlush();//force execution of GL commands
@@ -160,6 +158,31 @@ int main(int iArgc, char** cppArgv) {
 
 void Screen() {
 	Screen_Land();
+
+	glPushMatrix();
+	glColor3f(0, 0, 1);
+	glTranslatef(-25, 0, -25);
+	glScalef(10, 10, 10);
+	a.objDraw();
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslatef(25, 0, -25);
+	glScalef(10, 10, 10);
+	a.objDraw();
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslatef(10, 0, 0);
+	glScalef(0.005, 0.005, 0.005);
+	tree.objDraw();
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslatef(0, 0, 0);
+	glScalef(4, 4, 4);
+	//cottage.objDraw();
+	glPopMatrix();
 }
 
 void Wood(){
@@ -224,3 +247,28 @@ void Screen_Land() {
 	glVertex3f(-landWidth, 0.0, landWidth);
 	glEnd();
 }
+
+unsigned char* LoadFileContent(const char* path, int& filesize)
+{
+	unsigned char* fileContent = nullptr;
+	filesize = 0;
+	FILE* pFile = fopen(path, "rb");   //二进制方式读取
+	if (pFile)
+	{
+		fseek(pFile, 0, SEEK_END);      //将文件指针移动到文件末尾
+		int nLen = ftell(pFile);        //距离文件头部的距离   //这里指文件大小
+		if (nLen > 0)
+		{
+			rewind(pFile);          //移动到文件头部
+			fileContent = new unsigned char[nLen + 1];
+			//为文件指针开辟空间
+			fread(fileContent, sizeof(unsigned char), nLen, pFile);
+			//将pFile的内容读入fileContent
+			fileContent[nLen] = '\0';         //文件末尾加上\0
+			filesize = nLen;                  //为文件大小赋值
+		}
+		fclose(pFile);
+	}
+	return fileContent;
+}
+
