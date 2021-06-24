@@ -15,6 +15,8 @@ void Screen_Land();		//基础场景中的土地
 void Wood();	//进行交互操作的木桩
 void Light();		//灯光动画
 void Snow();		//下雪动画
+void SnowPart();
+void OneSnow();
 unsigned char* LoadFileContent(const char* path, int& filesize);//读取文件，返回文件内容，把文件大小赋值给filesize     
 /**********************************************************************************************************/
 
@@ -30,7 +32,7 @@ struct Float2      //点的纹理坐标数据类型
 
 struct Face          //面信息
 {
-	int vertex[3][3];       //三个点构成一个面  每个点有三个索引信息
+	int vertex[4][3];       //三个点构成一个面  每个点有三个索引信息
 };
 class objModel
 {
@@ -96,17 +98,23 @@ objModel::objModel(const char* objFileName)
 				//    f信息    exp： f 1/1/1 2/2/2 3/3/3      位置索引/纹理索引/法线索引   三角面片 三个点构成一个面
 				string vertexStr;   //接收流的内容
 				Face tempFace;
-				for (int i = 0; i < 3; ++i)         //每个面三个点
+				for (int i = 0; i < 4; ++i)         //每个面三个点
 				{
-					ssOneLine >> vertexStr;           //从流中读取点的索引信息
-					size_t pos = vertexStr.find_first_of('/');       //找到第一个/的位置      //即找到点的位置信息
-					string locIndexStr = vertexStr.substr(0, pos);       //赋值点的位置信息
-					size_t pos2 = vertexStr.find_first_of('/', pos + 1);   //找到第二个/   即找到点的纹理坐标信息
-					string texIndexSrt = vertexStr.substr(pos + 1, pos2 - 1 - pos);       //赋值点的纹理坐标信息
-					string norIndexSrt = vertexStr.substr(pos2 + 1, vertexStr.length() - 1 - pos2);   //赋值点的法线信息
-					tempFace.vertex[i][0] = atoi(locIndexStr.c_str());        //将索引信息从 srting转换为 int     //位置索引信息赋值
-					tempFace.vertex[i][1] = atoi(texIndexSrt.c_str());         //纹理坐标索引信息赋值
-					tempFace.vertex[i][2] = atoi(norIndexSrt.c_str());         //法线信息赋值
+					if (ssOneLine >> vertexStr) {           //从流中读取点的索引信息
+						size_t pos = vertexStr.find_first_of('/');       //找到第一个/的位置      //即找到点的位置信息
+						string locIndexStr = vertexStr.substr(0, pos);       //赋值点的位置信息
+						size_t pos2 = vertexStr.find_first_of('/', pos + 1);   //找到第二个/   即找到点的纹理坐标信息
+						string texIndexSrt = vertexStr.substr(pos + 1, pos2 - 1 - pos);       //赋值点的纹理坐标信息
+						string norIndexSrt = vertexStr.substr(pos2 + 1, vertexStr.length() - 1 - pos2);   //赋值点的法线信息
+						tempFace.vertex[i][0] = atoi(locIndexStr.c_str());        //将索引信息从 srting转换为 int     //位置索引信息赋值
+						tempFace.vertex[i][1] = atoi(texIndexSrt.c_str());         //纹理坐标索引信息赋值
+						tempFace.vertex[i][2] = atoi(norIndexSrt.c_str());         //法线信息赋值
+					}
+					else {
+						tempFace.vertex[i][0] = tempFace.vertex[i - 1][0];
+						tempFace.vertex[i][1] = tempFace.vertex[i - 1][1];
+						tempFace.vertex[i][2] = tempFace.vertex[i - 1][2];
+					}
 				}
 				mFace.push_back(tempFace);
 			}
@@ -117,7 +125,7 @@ objModel::objModel(const char* objFileName)
 void objModel::objDraw()
 {
 	//glBindTexture(GL_TEXTURE_2D, mTexture);
-	glBegin(GL_TRIANGLES);
+	glBegin(GL_QUADS);
 	for (auto faceIndex = mFace.begin(); faceIndex != mFace.end(); ++faceIndex)         //循环遍历face信息
 	{
 		//第一个点的法线，纹理，位置信息
@@ -132,6 +140,10 @@ void objModel::objDraw()
 		glNormal3fv(mNormal[faceIndex->vertex[2][2] - 1].Data);
 		glTexCoord2fv(mTexcoord[faceIndex->vertex[2][1] - 1].Data);
 		glVertex3fv(mLocation[faceIndex->vertex[2][0] - 1].Data);
+		//第四个点的法线，纹理，位置信息
+		glNormal3fv(mNormal[faceIndex->vertex[3][2] - 1].Data);
+		glTexCoord2fv(mTexcoord[faceIndex->vertex[3][1] - 1].Data);
+		glVertex3fv(mLocation[faceIndex->vertex[3][0] - 1].Data);
 	}
 	glEnd();
 }

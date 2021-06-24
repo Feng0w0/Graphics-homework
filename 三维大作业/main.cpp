@@ -2,28 +2,38 @@
 
 /*************************************************全局变量*************************************************/
 float landWidth = 50;	//土地宽度
-float cameraX = 0;		//相机旋转角度
-float woodX = 0, woodY = 0, woodZ = 0, woodDegree = 0, woodScaleX = 1, woodScaleY = 1, woodScaleZ = 1;	//木桩的初始位置，旋转角度和放缩比例
+float cameraDegree = 0,R=100;		//相机旋转角度和旋转半径
+float woodX = 0, woodY = 0, woodZ = 30, woodDegree = 0, woodScaleX = 1, woodScaleY = 1, woodScaleZ = 1;	//木桩的初始位置，旋转角度和放缩比例
 float disWoodX = 0, disWoodY = 0, disWoodZ = 0;		//木桩的移动位置
 bool mouseLeftDown=false;		//鼠标左键是否按下
 int mouseX = 0, mouseY = 0;		//鼠标位置
-objModel a("Squirtle.obj");
-objModel tree("Tree.obj");
-objModel cottage("cottage.obj");
+float lightDegree = 0;		//光线旋转角度
+objModel mode("Squirtle.obj");	//乌龟
+objModel tree("tree1.obj");			//树
+objModel cottage("cottage.obj");//村舍
+GLfloat lightPos[] = { -1.0f, 0.0f, 0.0f,0.0f };
+GLfloat ambientLight[] = { 214/256.0f, 236/256.0f, 240/256.0f, 1.0f };
+GLfloat specular[] = { 0.2f, 0.2f, 0.2f, 1.0f };
+GLfloat diffuse[] = { 0.2f, 0.2f, 0.2f, 1.0f };
+float number[120];//40朵雪花的x，y，z
+float r = 0.1;	//雪花下降
+int snowDegree = 0;	//雪花旋转
+bool snowDown = true;
 /**********************************************************************************************************/
 
-GLfloat lightPos[] = { 0.0f, 100.0f, 0.0f, 1.0f };
-GLfloat spotDir[] = { 0.0f, 0.0f, 1.0f };
+
 void Initialize() {
 	glClearColor(0.0, 0.0, 0.0, 0.0); /*Specify the red, green, blue, and alpha values used when the color buffers are cleared*/
 	glDepthFunc(GL_LEQUAL);		//遮盖采用小于等于的比较方式
 	glEnable(GL_DEPTH_TEST);	//开启遮盖
 	glShadeModel(GL_SMOOTH);	//顶点着色
 	//光照设置
-	//glEnable(GL_LIGHTING);
-	//glEnable(GL_LIGHT0);
-	//glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
-	//glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, spotDir);
+	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
+	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambientLight);
+	//glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
+	//glLightfv(GL_LIGHT0, GL_SPECULAR, specular);
+	//glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	gluLookAt(0, 20, 100, 0, 0, 0, 0, 1, 0);	//将摄像机放置于(0,50,100)位置，看向(0,0,0)
@@ -31,6 +41,17 @@ void Initialize() {
 	glLoadIdentity();// load the identity matrix for the projection matrix first
 	gluPerspective(45.0f, 960.0f / 720.0f, 0.1f, 200.0f); // (angle of view, aspect ratio, near, far clipping planes)
 	//gluOrtho2D(0.0, 200, 0.0, 150.0);//指定使用正投影将一个x坐标在0~200，y坐标0~150范围内的矩形坐标区域投影到显示器窗口
+
+	//雪花初始化
+	for (int i = 0; i < 40; i++) {
+		number[i] = rand() % 100 - 50;
+	}
+	for (int i = 40; i < 80; i++) {
+		number[i] = 70 + rand() % 100;
+	}
+	for (int i = 80; i < 120; i++) {
+		number[i] = rand() % 100 - 50;
+	}
 }
 
 
@@ -44,9 +65,8 @@ void Display() {
 	Light();
 	Snow();
 	//摄像机控制
-	
 	glLoadIdentity();
-	gluLookAt(sin(cameraX/180*3.1415)*100, 20, cos(cameraX / 180 * 3.1415) * 100, 0, 0, 0, 0, 1, 0);
+	gluLookAt(sin(cameraDegree/180*3.1415)*R, 20, cos(cameraDegree / 180 * 3.1415) * R, 0, 20, 0, 0, 1, 0);
 	glFlush();//force execution of GL commands
 }
 
@@ -57,10 +77,10 @@ void NormalKeys(unsigned char normalkey, int x, int y) {
 		exit(0);
 	}
 	else if (normalkey == 'q') {	//摄像机顺时针转
-		cameraX -= 1;
+		cameraDegree -= 1;
 	}
 	else if (normalkey == 'e') {	//摄像机逆时针转
-		cameraX += 1;
+		cameraDegree += 1;
 	}
 	else if (normalkey == 17) {	//ctrl+q木桩顺时针转
 		int mod = glutGetModifiers();
@@ -73,6 +93,18 @@ void NormalKeys(unsigned char normalkey, int x, int y) {
 		if (mod == GLUT_ACTIVE_CTRL) {
 			woodDegree += 1;
 		}
+	}
+	else if (normalkey == 'z') {
+		lightDegree -= 2;
+	}
+	else if (normalkey == 'w') {
+		R--;
+	}
+	else if (normalkey == 's') {
+		R++;
+	}
+	else if (normalkey == 'x') {
+		snowDown = !snowDown;
 	}
 	glutPostRedisplay();
 }
@@ -158,34 +190,89 @@ int main(int iArgc, char** cppArgv) {
 
 void Screen() {
 	Screen_Land();
-
+	//雪人1
+	GLfloat mat_ambient[] = { 0.174500, 0.011750, 0.011750, 0.550000 };
+	GLfloat mat_diffuse[] = { 0.614240, 0.041360, 0.041360, 0.550000};
+	GLfloat mat_specular[] = { 0.727811, 0.626959, 0.626959, 0.550000};
+	GLfloat mat_shininess[] = { 76.800003 }; //材质RGBA镜面指数，数值在0～128范围内
+	//glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, mat_ambient);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat_diffuse);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mat_specular);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, mat_shininess);
 	glPushMatrix();
 	glColor3f(0, 0, 1);
-	glTranslatef(-25, 0, -25);
-	glScalef(10, 10, 10);
-	a.objDraw();
+	glTranslatef(-25, 0, 40);
+	glScalef(2, 2, 2);
+	mode.objDraw();
 	glPopMatrix();
-
+	//雪人2
 	glPushMatrix();
-	glTranslatef(25, 0, -25);
-	glScalef(10, 10, 10);
-	a.objDraw();
+	glTranslatef(25, 0, 40);
+	glScalef(2, 2, 2);
+	mode.objDraw();
 	glPopMatrix();
-
+	//树1
+	GLfloat mat_ambient2[] = { 0.021500, 0.174500, 0.021500, 0.550000};
+	GLfloat mat_diffuse2[] = { 0.075680, 0.614240, 0.075680, 0.550000 };
+	GLfloat mat_specular2[] = { 0.633000, 0.727811, 0.633000, 0.550000 };
+	GLfloat mat_shininess2[] = { 76.800003 }; //材质RGBA镜面指数，数值在0～128范围内
+	//glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, mat_ambient2);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat_diffuse2);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mat_specular2);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, mat_shininess2);
 	glPushMatrix();
-	glTranslatef(10, 0, 0);
-	glScalef(0.005, 0.005, 0.005);
+	glTranslatef(35, 0, -35);
+	glRotatef(-90, 1, 0, 0);
+	glScalef(5, 5, 5);
 	tree.objDraw();
 	glPopMatrix();
-
+	//树2
 	glPushMatrix();
-	glTranslatef(0, 0, 0);
-	glScalef(4, 4, 4);
-	//cottage.objDraw();
+	glTranslatef(-35, 0, -35);
+	glRotatef(-90, 1, 0, 0);
+	glScalef(5, 5, 5);
+	tree.objDraw();
+	glPopMatrix();
+	//村庄1
+	GLfloat mat_ambient3[] = { 0.191250, 0.073500, 0.022500, 1.000000 };
+	GLfloat mat_diffuse3[] = { 0.703800, 0.270480, 0.082800, 1.000000 };
+	GLfloat mat_specular3[] = { 0.256777, 0.137622, 0.086014, 1.000000 };
+	GLfloat mat_shininess3[] = { 12.800000 }; //材质RGBA镜面指数，数值在0～128范围内
+	//glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, mat_ambient3);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat_diffuse3);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mat_specular3);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, mat_shininess3);
+	glPushMatrix();
+	glTranslatef(0, 0, -30);
+	glRotatef(180, 0, 1, 0);
+	glScalef(3, 3, 3);
+	cottage.objDraw();
+	glPopMatrix();
+	//村庄2
+	glPushMatrix();
+	glTranslatef(30, 0, 10);
+	glRotatef(90, 0, 1, 0);
+	glScalef(3, 3, 3);
+	cottage.objDraw();
+	glPopMatrix();
+	//村庄3
+	glPushMatrix();
+	glTranslatef(-30, 0, 10);
+	glRotatef(270, 0, 1, 0);
+	glScalef(3, 3, 3);
+	cottage.objDraw();
 	glPopMatrix();
 }
 
 void Wood(){
+	//GLfloat mat_ambient[] = { 0.192250, 0.192250, 0.192250, 1.000000 };
+	GLfloat mat_diffuse[] = { 128/256.0, 64/256.0, 0.0, 1.000000 };
+	GLfloat mat_specular[] = { 128 / 256.0, 64 / 256.0, 0.0, 1.000000 };
+	GLfloat mat_shininess[] = { 51.200001 }; //材质RGBA镜面指数，数值在0～128范围内
+	//glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, mat_ambient);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat_diffuse);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mat_specular);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, mat_shininess);
 	glPushMatrix();
 	glTranslatef(woodX + disWoodX, woodY + disWoodY, woodZ + disWoodZ);	//木桩位置
 	glRotatef(woodDegree, 0, 1, 0);	//木桩旋转
@@ -234,13 +321,60 @@ void Wood(){
 	glPopMatrix();
 }
 void Light(){
-	int a;
+	glPushMatrix();
+	glRotatef(lightDegree, 0, 0, 1);
+	lightDegree -= 0.05;
+	glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
+	if (lightDegree == -180) {
+		//glDisable(GL_LIGHT0);
+	}
+	if (lightDegree == -360) {
+		lightDegree = 0;
+		//glEnable(GL_LIGHT0);
+	}
+	glPopMatrix();
+	glutPostRedisplay();
 }
-void Snow(){}
+void Snow(){
+	for (int i = 0; i < 40; i++) {
+		glPushMatrix();
+		if (number[i + 40]< 0) {
+			if (!snowDown)continue;
+			number[i] = rand() % 100 - 50;
+			number[i + 40] = rand() % 100 + 70;
+			number[i + 80] = rand() % 100 - 50;
+		}
+		glTranslatef(number[i], number[i + 40], number[i + 80]);
+		number[i + 40] -= r;
+		glRotatef((number[i+80]/number[i])/100 * snowDegree++, 0, 0, 1);
+		glRotatef((number[i] / number[i + 80]) / 100 * snowDegree, 1, 0, 0);
+
+		GLfloat mat_ambient[] = { 0.192250, 0.192250, 0.192250, 1.000000 };
+		GLfloat mat_diffuse[] = { 0.507540, 0.507540, 0.507540, 1.000000 };
+		GLfloat mat_specular[] = { 0.508273, 0.508273, 0.508273, 1.000000 };
+		GLfloat mat_shininess[] = { 51.200001 }; //材质RGBA镜面指数，数值在0～128范围内
+		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, mat_ambient);
+		glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat_diffuse);
+		glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mat_specular);
+		glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, mat_shininess);
+		glScalef(0.1, 0.1, 0.1);
+		OneSnow();
+		glPopMatrix();
+	}
+}
 
 void Screen_Land() {
+	GLfloat mat_ambient[] = { 0.053750, 0.050000, 0.066250, 0.820000 };
+	GLfloat mat_diffuse[] = { 0.182750, 0.170000, 0.225250, 0.820000 };
+	GLfloat mat_specular[] = { 0.332741, 0.328634, 0.346435, 0.820000 };
+	GLfloat mat_shininess[] = { 38.400002 }; //材质RGBA镜面指数，数值在0～128范围内
+	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, mat_ambient);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, mat_diffuse);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mat_specular);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, mat_shininess);
 	glBegin(GL_QUADS);
 	glColor3f(256 / 256.0, 256 / 256.0, 256 / 256.0);
+	glNormal3f(0, 1, 0);
 	glVertex3f(-landWidth, 0.0, -landWidth);
 	glVertex3f(landWidth, 0.0, -landWidth);
 	glVertex3f(landWidth, 0.0, landWidth);
@@ -272,3 +406,49 @@ unsigned char* LoadFileContent(const char* path, int& filesize)
 	return fileContent;
 }
 
+void OneSnow() {
+	for (int i = 0; i < 6; i++) {
+		glRotatef(60, 0, 0, 1);
+		SnowPart();
+		glScalef(1, -1, 1);
+		SnowPart();
+		glScalef(1, -1, 1);
+	}
+}
+void SnowPart() {
+	glBegin(GL_QUADS);
+	glNormal3f(0, 0, 1);
+	glVertex3f(0.0, 0.0, 0);
+	glVertex3f(1.0, 1.0, 0);
+	glVertex3f(16.0, 1.0, 0);
+	glVertex3f(17.0, 0.0, 0);
+
+	glVertex3f(10.0, 4.0, 0);
+	glVertex3f(11.0, 4.0, 0);
+	glVertex3f(7.0, 1.0, 0);
+	glVertex3f(6.0, 1.0, 0);
+
+	glVertex3f(15.0, 3.0, 0);
+	glVertex3f(16.0, 3.0, 0);
+	glVertex3f(13.0, 1.0, 0);
+	glVertex3f(12.0, 1.0, 0);
+	glEnd();
+
+	glBegin(GL_QUADS);
+	glNormal3f(0, 0, -1);
+	glVertex3f(0.0, 0.0, 0);
+	glVertex3f(1.0, 1.0, 0);
+	glVertex3f(16.0, 1.0, 0);
+	glVertex3f(17.0, 0.0, 0);
+
+	glVertex3f(10.0, 4.0, 0);
+	glVertex3f(11.0, 4.0, 0);
+	glVertex3f(7.0, 1.0, 0);
+	glVertex3f(6.0, 1.0, 0);
+
+	glVertex3f(15.0, 3.0, 0);
+	glVertex3f(16.0, 3.0, 0);
+	glVertex3f(13.0, 1.0, 0);
+	glVertex3f(12.0, 1.0, 0);
+	glEnd();
+}
